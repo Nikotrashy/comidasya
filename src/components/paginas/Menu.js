@@ -11,4 +11,4 @@ inline-block mb-5 p-2 text-white uppercase font-bold">
         </>
     );
 }
-export default Menu
+export default Menu;
