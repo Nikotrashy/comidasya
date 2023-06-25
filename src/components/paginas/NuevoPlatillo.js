@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import { FirebaseContext } from '../../firebase';
@@ -7,6 +7,9 @@ import { useNavigate } from 'react-router';
 const NuevoPlatillo = () => {
     const { firebaseInstance } = useContext(FirebaseContext);
     //console.log(firebaseInstance);
+    const [subiendo, guardarSubiendo] = useState(false);
+    const [progreso, guardarProgreso] = useState(0);
+    const [urlimagen, guardarUrlImagen] = useState('');
     const navigate = useNavigate();
 
     const formik = useFormik({
@@ -31,15 +34,44 @@ const NuevoPlatillo = () => {
                 .required('La descripción del platillo es obligatorio'),
         }),
         onSubmit: platillo => {
-            try{
-                platillo.existencia= true;
+            try {
+                platillo.existencia = true;
+                platillo.imagen = urlimagen;
                 firebaseInstance.db.collection('productos').add(platillo);
                 navigate('/menu');
-            } catch (error){
+            } catch (error) {
                 console.log(error);
             }
         }
     });
+
+    const handleUploadFile = async (event) => {
+        const file = event.target.files[0];
+        const storageRef = firebaseInstance.storage.ref('productos');
+        const fileRef = storageRef.child(file.name);
+
+        try {
+            guardarSubiendo(true);
+
+            const uploadTask = fileRef.put(file);
+
+            uploadTask.on('state_changed', (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                guardarProgreso(progress);
+            });
+
+            await uploadTask;
+
+            guardarSubiendo(false);
+
+            const downloadURL = await fileRef.getDownloadURL();
+            guardarUrlImagen(downloadURL);
+        } catch (error) {
+            console.log(error);
+            guardarSubiendo(false);
+        }
+    };
+
     return (
         <>
             <h1 className="text-3xl font-light mb-4">Agregar Platillo</h1>
@@ -60,7 +92,7 @@ const NuevoPlatillo = () => {
                                 onBlur={formik.handleBlur} />
                         </div>
                         {formik.touched.nombre && formik.errors.nombre ? (
-                            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb5" role="alert">
+                            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-5" role="alert">
                                 <p className="font-bold">Hubo un error:</p>
                                 <p>{formik.errors.nombre} </p>
                             </div>
@@ -80,7 +112,7 @@ const NuevoPlatillo = () => {
                                 onBlur={formik.handleBlur} />
                         </div>
                         {formik.touched.precio && formik.errors.precio ? (
-                            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb5" role="alert">
+                            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 m-5" role="alert">
                                 <p className="font-bold">Hubo un error:</p>
                                 <p>{formik.errors.precio} </p>
                             </div>
@@ -105,7 +137,7 @@ const NuevoPlatillo = () => {
                             </select>
                         </div>
                         {formik.touched.categoria && formik.errors.categoria ? (
-                            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb5" role="alert">
+                            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-5" role="alert">
                                 <p className="font-bold">Hubo un error:</p>
                                 <p>{formik.errors.categoria} </p>
                             </div>
@@ -117,12 +149,27 @@ const NuevoPlatillo = () => {
                             <input className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                                 id="imagen"
                                 type="file"
-                                value={formik.values.imagen}
-                                onChange={formik.handleChange}
-                                onBlur={formik.handleBlur} />
+                                onChange={handleUploadFile} />
                         </div>
+                        {subiendo && (
+                            <div className="h-12 relative w-full border">
+                                <div className="bg-green-500 absolute left-0 top-0 text-while px-2 text-sm h-12 flex items-center"
+                                    style={{ width: `${progreso}%` }}>
+                                    {progreso}%
+                                </div>
+                            </div>
+                        )}
+                        {urlimagen && (
+                            <p className="bg-green-500 text-white p-3 text-center my-5">
+                                La imagen se subió correctamente
+                            </p>
+                        )}
+
+
+
+
                         {formik.touched.imagen && formik.errors.imagen ? (
-                            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb5" role="alert">
+                            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-5" role="alert">
                                 <p className="font-bold">Hubo un error:</p>
                                 <p>{formik.errors.imagen} </p>
                             </div>
@@ -141,7 +188,7 @@ const NuevoPlatillo = () => {
                             </textarea>
                         </div>
                         {formik.touched.descripcion && formik.errors.descripcion ? (
-                            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb5" role="alert">
+                            <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-5" role="alert">
                                 <p className="font-bold">Hubo un error:</p>
                                 <p>{formik.errors.descripcion} </p>
                             </div>
